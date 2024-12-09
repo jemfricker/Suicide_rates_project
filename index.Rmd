@@ -1,0 +1,193 @@
+---
+title: "Suicide rates in Europe since the Millennium"
+subtitle: "PSY6422 project - reg no.240188832"
+output: 
+  html_document:
+    theme: paper
+message: FALSE
+date: "2024-12-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1 Data origins
+The data used for this project was sourced from the World Health Organisation (WHO) 
+It can be found using this link : https://www.who.int/data/gho/data/themes/mental-health/suicide-rates
+
+Here is also a link to the raw dataset csv file : 
+blob:null/396b5ef0-7087-4c19-b3db-776007bb2b78
+
+The Data displays the crude number of suicides per year since 2000, per 100,000 population for both sexes in all countries of Europe . This was created by the authors by amalgamating the average reported suicides in each country per year taken from each countries official death records. It examines not only each sex, both together and individually, but also all age categories. Raw numeric averaged values are given for number of suicides per 100,000 as well as upper and lower bounds for each average.
+
+
+# 2 Requirements
+
+There are multiple different variables that are important to be understood for this project.
+Many of the columns included in the original data set will be removed from analysis later in the code, so not all headings are necessary for consideration, however the few that will be visualized may need some clarification to easily understand:
+
+* Location - refers to the country in Europe from which the data point has originated 
+* Period - refers to the year the data point represents
+* FactValueNumeric - The averaged number of suicides in the region from that year 
+
+Before running the code some package requirements may be necessary for the code to run smoothly
+If not already, the tidyverse package will need to be installed.
+This can be done with the following code:
+
+
+```{r Packages, message=FALSE, warning=FALSE}
+# Suppress messages and install packages if necessary
+if (!require("tidyverse")) {suppressPackageStartupMessages(install.packages("tidyverse"))}
+library(tidyverse)
+
+if (!require("plotly")) {suppressPackageStartupMessages(install.packages("plotly"))}
+library(plotly)
+```
+
+# 3 Research question
+
+the current project aims to give further insight into the question of "How have European suicide rates changed since The Millennium?" 
+
+The rationale for such a question being the changing attitudes towards mental health and suicide since the so-called "mental health boom" of the recent 2 decades, making examining how and whether rates of suicide have changed since mental health has become a more spoken about topic extremely pertinent and topical to explore.  
+
+# 4 Data import and cleaning
+## 4.01 Data Import
+```{r Data import}
+#importing the data 
+#First navigate to the data set using the link stated in the data origins section 
+#if link does not work go to the webpage and under the data set for crude suicide rates (per 100,000 population) and filter to only include the countries for the WHO region Europe and to only include data for both sexes - not males and females individually
+#this should produce a data set - download and export this to excel format on your device  
+#then employ the below code
+library(readxl)
+suicide_dataset <- read_excel("data/suicide_dataset.xlsx")
+view(suicide_dataset)
+```
+
+## 4.02 removing unneccesary columns
+
+As previously stated, the initial dataset included many unneccesary columns for the current investigation such as Agegroup or whether the year the data point represents is the latest. Removing such columns will streamline the analysis and prevent any confounding variables from distorting the visualisation. 
+
+```{r Data cleaning}
+#cleaning the data
+#removing the columns that do not reflect the year, region or rate of suicide per 100,000 as none other than these are necessary for analysis and typically contain the same value e.g Agegroup (all) 
+#To do this use the dyplr function included in the tidyverse package and the select function to remove all unnecessary columns aside from Location country, Year and the averaged suicide rate.
+suicide_dataset <- select(suicide_dataset, Location, Period, FactValueNumeric)
+
+```
+
+lets check if that removed the right columns:
+```{r Sanity check 1}
+#SANITY CHECK 1 - does the data left reflect the question I want to explore?
+#view the first few lines of the data set using the Head function
+head(suicide_dataset)
+```
+If correct there should now only be three columns, Location, Period and FactValueNumeric
+
+## 4.03 Checking the data
+
+sanity checks can be carried out to make sure the data you now have is usable and the subsequent code will run smoothly.
+
+One of which being to check that no values are missing from the dataset that will prevent visualisation:
+```{r sanity check 2}
+#Sanity Check 2 
+#check for any missing values that may skew the dataset 
+sum(is.na(suicide_dataset))
+#if there are no missing values the output should be 0 and the dataset is not missing any values
+```
+
+
+# 5 Initial Visualisation
+We will begin by creating an initial plot of the data to see how it visualizes
+
+The code for a simple line graph is below:
+
+```{r initial visualisation, fig.height=6, fig.width=10}
+#Lets create an initial scatter plot of all the data using the ggplot function included in tidyverse 
+#separate each country by color 
+#labs function to define title and axis labels 
+#Run !
+ggplot(suicide_dataset, aes(x = Period, y = FactValueNumeric, color = Location)) +
+  geom_point() +
+  geom_line(aes(group = Location)) +
+  labs(title = "Suicide Rates in European Countries Over Time",
+       x = "Year",
+       y = "Suicide Rate")
+```
+
+Wow that looks messy !
+
+The graph is basic and squashed so the data is hard to read.
+
+The Title and axes don't properly reflect the question and aren't easy for anyone to understand.
+
+And it's boring, lets see if we can fix that.
+
+# 6 Improving the final Visualisation
+
+Let's employ some more functions to customize and better display the data for visual appeal and data information.
+
+We can change the title to "Suicide Rates in European Countries since the Millennium" to better reflect the research question at hand.
+
+The background color, font and axis labels will all be changed for more aesthetic visualization and easier comprehension. 
+
+And finally including an interactive aspect where hovering over each data point displays the year, location and raw numeric value of suicide rates. As well as a scrolling menu of countries that can be deselected at will to highlight only specific countries on the graph. specific sections of the graph can be highlighted to zoom into specific time periods in closer detail and can be undone by double clicking. 
+
+Thus making the final visualization an improved display of the data that can be examined more closely. 
+
+```{r final visualisation}
+#using the ggplot function included in the tidyverse package to create a line graph of each colour coded countries reported suicide rate on the X axis and year on the Y axis 
+#define the variables for the axis 
+#using the geom_point function to plot the data points as a scatter graph 
+#using the geom_line function to connect each countries data points 
+#labs function to define the title, and axis labels 
+#alter scale to more accurately reflect the values in the data set
+#apply theme_minimal for a clean modern look 
+#alter the theme, text size, font and background color for added customization 
+#apply the ggplotly package to make the graph interactive and allow for removal of each country
+
+p <- ggplot(suicide_dataset, aes(x = Period, y = FactValueNumeric, color = Location, text = Location)) +
+  geom_point() +
+  geom_line(aes(group = Location)) +
+  labs(title = "Suicide Rates in European Countries since the Millennium",
+       x = "Year",
+       y = "Suicide rate per 100,000") +
+  scale_y_continuous(limits = c(0, 60)) +
+  theme_minimal() +
+  theme( plot.title = element_text(size = 16, face = "bold"), axis.title.x = element_text(size = 12, face = "italic"), axis.title.y = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10), axis.text.y = element_text(size = 10), panel.background = element_rect(fill = "white"))
+ggplotly(p, width = 1200, height = 900) 
+#Automatically save the final visualization as a PNG to your device 
+ggsave("suicide_rates_plot.png", p, width = 12, height = 9, units = "in", dpi = 300)
+```
+
+
+# 7 Project summary 
+## 7.01 - interpretation 
+
+This graph of the data set allows for many inferences on rate of suicide in European countries since the Millennium to be made. Despite the majority of the countries remaining fairly consistent in their yearly rate of suicide per 100,000 population since 2000, fluctuating slightly but not displaying many significant changes, the graph does display some interesting trends. One of which being that the countries that reported the highest incidence of suicide per 100,000 in the initial recorded year, such as Russian federation (53.79), mostly displayed a negative trend over the subsequent 19 years - with Russia's final statistic being less than half of that in 2000 (25.11). This is an interesting trend as, due to political and economic crises suffered in the last 2 decades it could be assumed that rates of suicide would only have increased, especially in areas of conflict such as the Russian Federation and Ukraine. These unexpected trends could be due to many variables, such as decreased mental health stigmatization, access to mental health services or improvements in European education on the topic. However, the graph is limited in that it doesn't provide any detail on reason for suicide, only raw numerical values, so these possible contributing variables to the trends displayed cannot be further explored. Another interesting outlier displayed in the visualisation is the sharp decrease in suicides in Serbia in 2017 from 15.18 the previous year to virtually zero (0.56). This outlier begs the question of what changed in the year 2016-2017 for such a dramatic decrease in suicide rate - however the graph cannot provide any context for this. Overall, it cannot explain why the rates of suicide in Europe may have changed in the past two decades but could inform researchers or professionals of what the current trends in rate of suicide per 100,000 in Europe are, to be used as a basis for further detailed exploration.
+
+## 7.02 Follow ups to the Data
+
+This data set can be visualized in multiple ways and manipulated to examine different variables. Altering the sexes included to give data points for males and female rates in each country individually, rather than a collective statistic, might be an interesting follow up to see if one sex is more contributory to the statistics shown in the current visualization in order to gain a broader understanding of the suicide rates in European countries. The data set also included upper and lower bounds for each countries rate of suicide for the given year, not just the overall averaged value. Including these could give a more comprehensive and accurate view of suicide rates by including more detailed data points, however these were removed from the current visualization for sake of aesthetics and simplicity.
+
+## 7.03 Reflection 
+
+With more time and experience - I would include exclusions to filter the data to make the final visualization more appealing and less cluttered, as 50 lines are hard to differentiate. This could be done by grouping countries into regions, such as Eastern Europe or Scandinavia to reduce the amount of lines displayed, however this would make the data less detailed and unspecific to each country. 
+
+I would also incorporate more advanced techniques that I could not for the current project. These could include animating my plot to display the years gradually and visualize the changing trends over the years better. As well as this I would include code to create drop down menus to my Rmarkdown to better navigate my final Webpage. 
+
+Although I would like to include these aspects in a perfect world, I feel proud and content with my final visualization and feel confident that I managed to add an interactive element to the graph. Being a complete coding beginner, these techniques initially seemed out of reach to me, so to have included them as well as a level of customization feels like an achievement and a good reflection of my learning throughout this module.
+
+# 8 References 
+
+Suicide rates, Crude number, per 100,000 population of each individual European country. 
+
+Link to the webpage:
+https://www.who.int/data/gho/data/themes/mental-health/suicide-rates
+
+Link to the raw Dataset: 
+blob:null/396b5ef0-7087-4c19-b3db-776007bb2b78
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
